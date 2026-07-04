@@ -360,6 +360,20 @@ End AB_invariants.
 
 Record base : Set := mkBase { m: nat; k: nat; sign: bool; }.
 
+Definition base_eqn (b1 b2 : base) := 
+  [ && b1.(m) == b2.(m)
+     , b1.(k) == b2.(k)
+     & b1.(sign) == b2.(sign)
+  ].
+
+Lemma base_eqnP : Equality.axiom base_eqn.
+Proof.
+  move=> [m1 k1 sign1] [m2 k2 sign2]. rewrite /base_eqn /=.
+  by apply: (iffP and3P)=> [[/eqP -> /eqP -> /eqP ->] | [-> -> ->]].
+Qed.
+
+HB.instance Definition _ := hasDecEq.Build base base_eqnP.
+
 Lemma base_eq : forall (b1 b2 : base),
   b1.(m) = b2.(m) ->
   b1.(k) = b2.(k) ->
@@ -432,7 +446,11 @@ Proof.
   by move: H=> /and4P [_ /andP [H _] _ _].
 Qed.
 
+HB.instance Definition _ := Equality.copy vbase (pcan_type pcancel_donor).
+HB.instance Definition _ := Choice.copy vbase (pcan_type pcancel_donor).
+HB.instance Definition _ := Countable.copy vbase (pcan_type pcancel_donor).
 HB.instance Definition _ := Finite.copy vbase (pcan_type pcancel_donor).
+
 HB.about vbase.
 
 Definition step (b : base) : base :=
@@ -480,7 +498,7 @@ Proof.
   rewrite IH. by exact: (iter_order vstep_inj).
 Qed.
 
-Definition terminates (vb : vbase) := { i | (i < (order vstep start_vbase)) && (iter i vstep (vstep start_vbase) == vb) }.
+Definition terminates (vb : vbase) := { i | (i < (order vstep start_vbase)) /\ (iter i vstep (vstep start_vbase) == vb) }.
 
 Record state : Type := mkState { 
   s_vbase : vbase;
@@ -496,8 +514,8 @@ Record state : Type := mkState {
  }.
 
 
-Lemma terminates_initial_state_prf : (0 < (order vstep start_vbase)) && (iter 0 vstep (vstep start_vbase) == (vstep start_vbase)).
-Proof. apply/andP. constructor=> //. Qed.
+Lemma terminates_initial_state_prf : (0 < (order vstep start_vbase)) /\ (iter 0 vstep (vstep start_vbase) == (vstep start_vbase)).
+Proof. constructor=> //. Qed.
 
 Definition terminates_initial_state : terminates (vstep start_vbase) := exist _ 0 terminates_initial_state_prf.
 
@@ -531,14 +549,14 @@ Qed.
 
 Definition initial_state : state := {| s_vbase := vstep start_vbase; s_a := nsqrt; s_b := 1; s_ab_invariant := initial_ab_invariant; s_terminates := terminates_initial_state;  |}.
 
-Definition distance (s : state) : nat := (order vstep start_vbase) - val (s_terminates s).
+Definition distance (s : state) : nat := (order vstep start_vbase) - sval (s_terminates s).
 
 Lemma helper4' (s : state) (H1 : s_vbase s != start_vbase) : 
-  let i := val (s_terminates s) in
-  (i.+1 < (order vstep start_vbase)) && (iter i.+1 vstep (vstep start_vbase) == vstep (s_vbase s)).
+  let i := sval (s_terminates s) in
+  (i.+1 < (order vstep start_vbase)) /\ (iter i.+1 vstep (vstep start_vbase) == vstep (s_vbase s)).
 Proof.
-  move: (s_terminates s)=> [i H2].
-  apply/andP. constructor=> /= ; move/andP: H2=> [Hlt /eqP Hiter].
+  move: (s_terminates s)=> [i [Hlt /eqP Hiter]] /=.
+  constructor=> /=.
   rewrite ltn_neqAle. apply/andP. constructor=> //.
   apply/eqP=> H. move/eqP: H1=> H1. apply: H1.
   move: Hiter. by rewrite -iterSr H (iter_order vstep_inj)=> ->.
@@ -546,7 +564,7 @@ Proof.
 Qed.
 
 Definition helper4 (s : state) (H1 : s_vbase s != start_vbase) : terminates (vstep (s_vbase s)) := 
-  exist _ (val (s_terminates s)).+1 (helper4' H1).
+  exist _ (sval (s_terminates s)).+1 (helper4' H1).
 
 Lemma helper5 (s : state) : 
   let vb' := vstep (s_vbase s) in
@@ -584,7 +602,7 @@ Definition next_step (s : state) (Hneq : s_vbase s != start_vbase) :=
 Remark chakravala_oblig (s : state) (Hneq : s_vbase s != start_vbase) :
   distance (next_step Hneq) < distance s.
 Proof.
-   rewrite /distance /=. move: (s_terminates s)=> [i /andP [Hltn Hiter]] /=.
+  rewrite /distance /=. move: (s_terminates s)=> [i [Hltn Hiter]] /=.
   rewrite ltn_sub2lE //.
 Qed.
 
@@ -654,7 +672,6 @@ Extract Inductive bool => "bool" [ "true" "false" ].
 Extract Inductive sumbool => "bool" [ "true" "false" ].
 Extract Inductive alt_spec => "bool" [ "true" "false" ].
 
-(* 
 Extract Inductive nat => "Z.t" [ "Z.zero" "Z.succ" ] "(fun fO fS n -> if n=0 then fO () else fS (Z.pred n))".
 
 Check modn.
@@ -665,25 +682,11 @@ Extract Constant predn => "Z.pred".
 Extract Constant mult => "Z.mul".
 Extract Constant divn => "Z.ediv".
 Extract Constant modn => "Z.erem".
+Extract Constant odd => "Z.is_odd".
+Extract Constant isqrt => "Z.sqrt".
 Extract Constant expn => "fun x y -> Z.pow x (Z.to_int y)".
 Extract Constant eqb => "( = )".
-Extract Constant eqn => "( = )". *)
+Extract Constant eqn => "( = )".
 
-(* TODO: use big integers instead *)
-Extract Inductive nat => "int"
-  [ "0" "succ" ]
-  "(fun zero succ n -> if n=0 then zero () else succ (n-1))".
-
-Extract Constant minus => "fun x y -> max (x - y) 0".
-Extract Constant predn => "pred".
-Extract Constant plus => "( + )".
-Extract Constant mult => "( * )".
-Extract Constant divn => "( / )".
-Extract Constant modn => "( mod )". (* safe because always > 0 *)
-
-Extract Constant eqb =>  "( = )".
-Extract Constant eqn =>  "( = )".
-
-Extract Constant double => "fun x -> x * 2".
-
-(* Extraction ".generated/chakravala.ml" chakravala. *)
+Set Extraction Output Directory ".generated".
+Extraction "chakravala.ml" chakravala.
