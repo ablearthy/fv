@@ -20,6 +20,7 @@ def spawn(n, nsqrt):
         m = nsqrt - (nsqrt + m) % k
         assert 0 < m <= nsqrt < m + k
         assert 0 < k <= nsqrt + m
+        assert b <= (a + b * m) // k
         return m, (n - m * m) // k, not sign, (a * m + n * b) // k, (a + b * m) // k
     
     def p(m, k, sign):

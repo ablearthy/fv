@@ -1,25 +1,25 @@
 # chakravala
 
-The algorithm described in [this article](https://www.isibang.ac.in/~sury/chakravala.pdf) [^1]
-was verified using [mathcomp](https://github.com/math-comp/math-comp).
+This work verifies that `chakravala` is *correct* and that it *terminates*.
+Correctness means that the function always returns a solution to Pell’s equation,
+and that solution is non‑trivial whenever `n` is not a perfect square.
+
+The algorithm is described in [this article](https://www.isibang.ac.in/~sury/chakravala.pdf) [^1];
+verification was done using [mathcomp](https://github.com/math-comp/math-comp).
 
 [^1]:
     In this implementation, at each step `m` is chosen such that `m² < N` and `N - m²` is minimal.
     The algorithm could be slightly modified to choose `m` such that `|m² - N|` is minimal,
     but this does not seem to make a significant difference.
 
-The main theorem that was proved is that `chakravala` is *correct*:
-the function returns a solution to Pell's equation, and if `n` is not a perfect square the solution is non‑trivial.
-Along the way, *termination* of the algorithm was also proved.
-
-```
+```coq
 Theorem chakravala_correct (n : nat) :
   let: (a, b) := chakravala n in
   (a ^ 2 - n * (b ^ 2) = 1)
   /\ ((isqrt n) ^ 2 != n -> b != 0).
 ```
 
-The complete code is in the file `Main.v`.
+The complete code is in the file [Main.v](./Main.v).
 It is not polished yet, but it works!
 Extraction to OCaml also works (note that it uses `int`, so it will fail for large `n`; you could use `Z` from `zarith` instead).
 
@@ -29,7 +29,7 @@ utop # chakravala 5;;
 - : (int, int) prod = Pair (9, 4)
 utop # chakravala 61;;
 - : (int, int) prod = Pair (1766319049, 226153980)
-utop # chakravala 5;;
+utop # chakravala 109;;
 - : (int, int) prod = Pair (158070671986249, 15140424455100)
 ```
 
@@ -70,8 +70,6 @@ Also assume that `(m, k, sign) = iter n step initial` for some `n`.
 
 This implies that there exists `o = order initial > 0`, s.t. `iter o step initial = initial`.
 `o` is the length of the cycle.
-This means in `[initial, step initial, step (step initial), ... iter o step initial]`
-the first and last values are the same.
 
 Now, for any state `s` that occurs before returning to initial,
 let `i` be the number of steps needed to reach `s` from `initial` (so `iter (i+1) step_state initial = s`).
@@ -87,8 +85,5 @@ The correctness proof maintains two invariants:
 - `a² - n·b² = k_signed`
 - `k` divides both `a * m + n * b` and `a + b * m`
 
-If `n` is not perfect square, then we get non-trivial solution (i.e. `b != 0`).
-That's because initially `b = 1` and only grows.
-
 If `n` is not a perfect square, the solution is non‑trivial (`b ≠ 0`).
-Initially `b = 1`, and b` never decreases; the final b is therefore non‑zero.
+Initially `b = 1`, and `b` never decreases; the final `b` is therefore non‑zero.
