@@ -1,0 +1,4 @@
+(library
+ (public_name chakravala_autogen)
+ (name chakravala_autogen)
+ (libraries zarith))

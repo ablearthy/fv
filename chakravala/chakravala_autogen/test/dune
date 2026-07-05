@@ -1,0 +1,4 @@
+(test
+ (name test_chakravala_autogen)
+ (modules test_chakravala_autogen)
+ (libraries alcotest chakravala_autogen))
